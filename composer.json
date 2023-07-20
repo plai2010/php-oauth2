@@ -1,0 +1,29 @@
+{
+    "name": "plai2010/php-oauth2",
+    "description": "OAuth2 utilities for PHP.",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Patrick Lai",
+            "email": "2010.plai@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "PL2010\\Laravel\\": "src/Laravel/",
+            "PL2010\\OAuth2\\": "src/"
+        }
+    },
+    "require": {
+        "league/oauth2-client": "^2.7"
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "PL2010\\Laravel\\OAuth2ServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "stable"
+}
