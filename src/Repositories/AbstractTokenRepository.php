@@ -113,7 +113,7 @@ abstract class AbstractTokenRepository implements TokenRepository {
 	}
 
 	/** {@inheritdoc} */
-	public function putOAuth2Token(string $key, array $token): self {
+	public function putOAuth2Token(string $key, array $token): static {
 		$this->tokenSave($key, $token);
 		return $this;
 	}

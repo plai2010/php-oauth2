@@ -20,7 +20,7 @@ interface TokenRepository {
 	 * Store OAuth2 token by key.
 	 * @param string $name Token key.
 	 * @param array Token with 'access_token' and other attributes.
-	 * @return self
+	 * @return $this
 	 */
-	public function putOAuth2Token(string $key, array $token): self;
+	public function putOAuth2Token(string $key, array $token): static;
 }

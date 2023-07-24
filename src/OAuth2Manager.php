@@ -29,13 +29,13 @@ class OAuth2Manager implements OAuth2 {
 	 * @param string $name Name of the provider.
 	 * @param array $config Configuration of the provider.
 	 * @param bool $default Whether the provider is the default.
-	 * @return self
+	 * @return $this
 	 */
 	public function configure(
 		string $name,
 		array $config,
 		bool $default=false
-	): self {
+	): static {
 		// Clear out previous instances.
 		if (isset($this->defines[$name])) {
 			$prefix = "{$name}:";
