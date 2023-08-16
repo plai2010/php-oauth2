@@ -111,7 +111,7 @@ class OAuth2Manager implements OAuth2 {
 	 * Call {@link OAuth2::authorize()} on default.
 	 */
 	public function authorize(
-		string $type='code',
+		string $type='',
 		string|array $scope=''
 	): string|array {
 		return $this->get()->authorize($type, $scope);

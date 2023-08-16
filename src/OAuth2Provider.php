@@ -30,6 +30,29 @@ class OAuth2Provider implements OAuth2 {
 			$this->error_log = $logger;
 	}
 
+	/**
+	 * Add scope option.
+	 * @param string|array $scope Scope to add; use provider default is empty.
+	 * @param array $options Add to this set of options.
+	 * @return array
+	 */
+	private function addScopeOption(
+		string|array $scope,
+		array $options=[]
+	): array {
+		$providerCfg = $this->config['provider'] ?? null;
+
+		if (!$scope)
+			$scope = $providerCfg['scopes'] ?? '';
+
+		if (is_array($scope))
+			$scope = implode($providerCfg['scope_separator'] ?? ' ', $scope);
+
+		if ($scope !== '')
+			$options['scope'] = $scope;
+		return $options;
+	}
+
 	/** {@inheritdoc} */
 	public function getName(): string {
 		return $this->name;
@@ -49,9 +72,10 @@ class OAuth2Provider implements OAuth2 {
 
 	/** {@inheritdoc} */
 	public function authorize(
-		string $type='code',
+		string $type='',
 		string|array $scope=''
 	): string|array {
+		$type = $type ?: ($this->config['grant_type'] ?? 'code');
 		$providerCfg = $this->config['provider'] ?? [];
 		$provider = $this->getOAuth2Provider();
 
@@ -66,7 +90,15 @@ class OAuth2Provider implements OAuth2 {
 				'scope' => $scope,
 				'state' => $state,
 			]);
-		case 'token':
+		case 'client_credentials':
+			$options = $this->addScopeOption($scope);
+			return $provider->getAccessToken($type, $options);
+		case 'password':
+			$options = $this->addScopeOption($scope, [
+				'username' => $providerCfg['username'] ?? null,
+				'password' => $providerCfg['password'] ?? null,
+			]);
+			return $provider->getAccessToken($type, $options);
 		default:
 			$this->logError("unsupported OAuth2 response_type: $type");
 			throw new InvalidArgumentException('unsupported_response_type');
@@ -120,10 +152,23 @@ class OAuth2Provider implements OAuth2 {
 			return null;
 
 		$provider = $this->getOAuth2Provider();
-		$token = $provider->getAccessToken('refresh_token', array_merge($cred, [
-			// Don't care about redirect URI for refresh token request.
-			'redirect_uri' => null,
-		]));
+		if (isset($cred['refresh_token'])) {
+			$token = $provider->getAccessToken('refresh_token', array_merge($cred, [
+				// Don't care about redirect URI for refresh token request.
+				'redirect_uri' => null,
+			]));
+		}
+		else {
+			switch ($this->config['grant_type'] ?? 'code') {
+			case 'client_credentials':
+			case 'password':
+				$token = $this->authorize();
+				break;
+			default:
+				$this->logError("OAuth2 token cannot be refreshed: {$this->name}");
+				return null;
+			}
+		}
 		$refreshed = json_decode(json_encode($token), true);
 		$cred = array_merge($cred, $refreshed);
 		return $cred;

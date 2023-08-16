@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static ?\PL2010\OAuth2\Contracts\OAuth2 get(?string $name=null, ?string $usage);
  * @method static string getName();
  * @method static string redirectUri();
- * @method static string|array authorize(string $type='code', string|array $scope='');
+ * @method static string|array authorize(string $type='', string|array $scope='');
  * @method static array receive(string $url);
  * @method static array|NULL refresh(array $cred, int $ttl=300);
  */

@@ -24,12 +24,12 @@ interface OAuth2 {
 	 * for user agent redirect to the authorization endpoint or the
 	 * actual token is returned. The former case would be for
 	 * authorization code grant flow.
-	 * @param string $type OAuth2 response type requested.
+	 * @param string $type OAuth2 response type requested if not default.
 	 * @param string|array $scope OAuth2 scope if not the default.
 	 * @return string|array Authorization URL or access token.
 	 */
 	public function authorize(
-		string $type='code',
+		string $type='',
 		string|array $scope=''
 	): string|array;
 
