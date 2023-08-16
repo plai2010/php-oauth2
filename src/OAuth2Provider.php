@@ -92,13 +92,13 @@ class OAuth2Provider implements OAuth2 {
 			]);
 		case 'client_credentials':
 			$options = $this->addScopeOption($scope);
-			return $provider->getAccessToken($type, $options);
+			return $provider->getAccessToken($type, $options)->jsonSerialize();
 		case 'password':
 			$options = $this->addScopeOption($scope, [
 				'username' => $providerCfg['username'] ?? null,
 				'password' => $providerCfg['password'] ?? null,
 			]);
-			return $provider->getAccessToken($type, $options);
+			return $provider->getAccessToken($type, $options)->jsonSerialize();
 		default:
 			$this->logError("unsupported OAuth2 response_type: $type");
 			throw new InvalidArgumentException('unsupported_response_type');
