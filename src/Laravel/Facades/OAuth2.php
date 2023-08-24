@@ -7,12 +7,12 @@ use Illuminate\Support\Facades\Facade;
  * Facade for OAuth2 interaction.
  * The {@link get()} method retrieves a named OAuth2 instance. The other
  * methods are pass through to the default instance.
- * @method static ?\PL2010\OAuth2\Contracts\OAuth2 get(?string $name=null, ?string $usage);
- * @method static string getName();
- * @method static string redirectUri();
- * @method static string|array authorize(string $type='', string|array $scope='');
- * @method static array receive(string $url);
- * @method static array|NULL refresh(array $cred, int $ttl=300);
+ * @method static ?\PL2010\OAuth2\Contracts\OAuth2 get(?string $name=null, ?string $usage=null, ?array $params=null)
+ * @method static string getName()
+ * @method static string redirectUri()
+ * @method static string|array authorize(string $type='', string|array $scope='')
+ * @method static array receive(string $url)
+ * @method static array|NULL refresh(array $cred, int $ttl=300)
  */
 class OAuth2 extends Facade {
 	/**

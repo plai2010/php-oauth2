@@ -35,7 +35,8 @@ abstract class AbstractTokenRepository implements TokenRepository {
 	 */
 	protected function resolve(string $key): OAuth2 {
 		$provider = $this->tokenKeyToProvider($key);
-		return $this->getOAuth2Manager()->get($provider);
+		$usage = $this->tokenKeyToUsage($key);
+		return $this->getOAuth2Manager()->get($provider, $usage);
 	}
 
 	/**
@@ -100,12 +101,16 @@ abstract class AbstractTokenRepository implements TokenRepository {
 	): array;
 
 	/** {@inheritdoc} */
-	public function getOAuth2Token(string $key, int $valid=0): array {
+	public function getOAuth2Token(
+		string $key,
+		int $valid=0,
+		?OAuth2 $oauth2=null
+	): array {
 		$token = $this->tokenLoad($key, $handle);
 
 		// Refresh token if needed.
 		if ($token && $valid > 0) {
-			$oauth2 = $this->resolve($key);
+			$oauth2 ??= $this->resolve($key);
 			if ($refreshed = $oauth2->refresh($token, $valid))
 				$token = $this->tokenSave($key, $refreshed, $handle);
 		}

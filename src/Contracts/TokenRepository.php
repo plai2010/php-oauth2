@@ -9,12 +9,18 @@ interface TokenRepository {
 	/**
 	 * Retrieve OAuth2 token by key.
 	 * If $valid is positive, token is refreshed if possible to be
-	 * valid for the specified time.
+	 * valid for the specified time. If provided, $oauth overrides
+	 * what the repository otherwise decides to use for token refresh.
 	 * @param string $key Token key.
 	 * @param int $valid Token validity in seconds.
+	 * @param ?\PL2010\OAuth2\Contracts\OAuth2 $oauth For refreshing.
 	 * @return array Token with 'access_token' and other attributes.
 	 */
-	public function getOAuth2Token(string $key, int $valid=0): array;
+	public function getOAuth2Token(
+		string $key,
+		int $valid=0,
+		?OAuth2 $oauth=null
+	): array;
 
 	/**
 	 * Store OAuth2 token by key.

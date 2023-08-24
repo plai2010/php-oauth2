@@ -52,20 +52,56 @@ class OAuth2Manager implements OAuth2 {
 	}
 
 	/**
+	 * Inject parameters into a configuration.
+	 * Pattern "${name}" is replaced by to $param['name'].
+	 * @param array $config Configuration.
+	 * @param array $params Name-value map.
+	 * @return array
+	 */
+	private function injectParameters(array $config, ?array $params): array {
+		if (!$params)
+			return $config;
+
+		$search = [];
+		$replace = [];
+		foreach ($params as $pn => $pv) {
+			if (!is_string($pv))
+				continue;
+			$search[] = '${'.$pn.'}';
+			$replace[] = $pv;
+		}
+		if (!$search)
+			return $config;
+
+		// TODO: handle literal '${name}' and avoid recursive injection
+		array_walk_recursive($config, function(&$val) use($search, $replace) {
+			if (strpos($val, '$') === false)
+				return;
+			$val = str_replace($search, $replace, $val);
+		});
+		return $config;
+	}
+
+	/**
 	 * Get OAuth2 provider by name.
 	 * If $name is not provided, then the default will be used. The
 	 * default is explicitly specified through {@link configure()},
 	 * or just the first configured otherwise.
 	 * @param ?string $name
 	 * @param ?string $usage
+	 * @param ?array $params Template instantiation parameters.
 	 */
-	public function get(?string $name=null, ?string $usage=null): ?OAuth2 {
+	public function get(
+		?string $name=null,
+		?string $usage=null,
+		?array $params=null
+	): ?OAuth2 {
 		$name = $name
 			?? $this->default
 			?? array_keys($this->providers)[0] ?? null;
 
 		$usage = $usage ?? '';
-		$slot = $usage !== '' ? "{$name}:$usage]" : $name;
+		$slot = $usage !== '' ? "{$name}:$usage" : $name;
 
 		// Provider already instantited?
 		$impl = $this->providers[$slot] ?? null;
@@ -76,6 +112,18 @@ class OAuth2Manager implements OAuth2 {
 		$conf = $this->defines[$name] ?? null;
 		if ($conf === null)
 			return null;
+
+		// For template, $usage may have the form "<usage>:<inst>"
+		// where <inst> is used to differentiate between the
+		// instantiations.
+		$template = $conf['template'] ?? false;
+		if ($template) {
+			$tuple = explode(':', $usage, 2);
+			if (count($tuple) > 1)
+				$usage = $tuple[0];
+		}
+		$conf['template'] = null;
+
 		if ($usage !== '') {
 			// Incorporate usage specific configuration.
 			$specific = $conf['usage'][$usage] ?? null;
@@ -87,6 +135,9 @@ class OAuth2Manager implements OAuth2 {
 			}
 		}
 		$conf['usage'] = null;
+
+		if ($template)
+			$conf = $this->injectParameters($conf, $params);
 
 		$impl = new OAuth2Provider($slot, $conf, $this->options);
 		$this->providers[$slot] = $impl;
