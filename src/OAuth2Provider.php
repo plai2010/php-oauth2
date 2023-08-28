@@ -171,6 +171,7 @@ class OAuth2Provider implements OAuth2 {
 				return null;
 			}
 		}
+		// TODO: exception if refreshed token fails to meet $ttl requested.
 		$refreshed = json_decode(json_encode($token), true);
 		$cred = array_merge($cred, $refreshed);
 		return $cred;

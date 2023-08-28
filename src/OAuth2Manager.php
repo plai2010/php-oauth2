@@ -53,7 +53,7 @@ class OAuth2Manager implements OAuth2 {
 
 	/**
 	 * Inject parameters into a configuration.
-	 * Pattern "${name}" is replaced by to $param['name'].
+	 * Pattern "${name}" is replaced by $param['name'].
 	 * @param array $config Configuration.
 	 * @param array $params Name-value map.
 	 * @return array
@@ -62,22 +62,31 @@ class OAuth2Manager implements OAuth2 {
 		if (!$params)
 			return $config;
 
-		$search = [];
-		$replace = [];
-		foreach ($params as $pn => $pv) {
-			if (!is_string($pv))
-				continue;
-			$search[] = '${'.$pn.'}';
-			$replace[] = $pv;
-		}
-		if (!$search)
-			return $config;
-
-		// TODO: handle literal '${name}' and avoid recursive injection
-		array_walk_recursive($config, function(&$val) use($search, $replace) {
-			if (strpos($val, '$') === false)
+		array_walk_recursive($config, function(&$val) {
+			if (!is_string($val) || strpos($val, '$') === false)
 				return;
-			$val = str_replace($search, $replace, $val);
+
+			$matches = [];
+			$offset = 0;
+			$pattern = '%(\\\\.)|\${([A-Za-z][A-Za-z0-9_]*)}%';
+			$options = PREG_OFFSET_CAPTURE;
+			ob_start();
+			while (preg_match($pattern, $val, $matches, $options, $offset)) {
+				[ $found, $mark ] = $matches[0];
+				echo substr($val, $offset, $mark-$offset);
+				if ($found[0] == '\\') {
+					// Found escaped character, e.g. '\$' => '$'
+					echo $found[1];
+				}
+				else {
+					// Found parameter reference, e.g. '${foobar}'
+					$name = $matches[2][0];
+					echo $params[$name] ?? null;
+				}
+				$offset = $mark + strlen($found);
+			}
+			echo substr($val, $offset);
+			$val = ob_get_clean();
 		});
 		return $config;
 	}
@@ -126,8 +135,11 @@ class OAuth2Manager implements OAuth2 {
 
 		if ($usage !== '') {
 			// Incorporate usage specific configuration.
+			// Usage may be an alias for another, but no chaining.
 			$specific = $conf['usage'][$usage] ?? null;
-			if ($specific) {
+			if (is_string($specific))
+				$specific = $conf['usage'][$specific] ?? null;
+			if (is_array($specific)) {
 				$conf['provider'] = array_merge(
 					$conf['provider'] ?? [],
 					$specific
