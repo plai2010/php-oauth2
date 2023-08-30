@@ -62,7 +62,7 @@ class OAuth2Manager implements OAuth2 {
 		if (!$params)
 			return $config;
 
-		array_walk_recursive($config, function(&$val) {
+		array_walk_recursive($config, function(&$val) use($params) {
 			if (!is_string($val) || strpos($val, '$') === false)
 				return;
 
