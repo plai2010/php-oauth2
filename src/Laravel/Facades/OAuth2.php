@@ -10,8 +10,8 @@ use Illuminate\Support\Facades\Facade;
  * @method static ?\PL2010\OAuth2\Contracts\OAuth2 get(?string $name=null, ?string $usage=null, ?array $params=null)
  * @method static string getName()
  * @method static string redirectUri()
- * @method static string|array authorize(string $type='', string|array $scope='')
- * @method static array receive(string $url)
+ * @method static string|array authorize(string $type='', string|array $scope='', ?string $redirect=null, ?\Closure $preserve=null)
+ * @method static array receive(string $url, ?array $preserved=null)
  * @method static array|NULL refresh(array $cred, int $ttl=300)
  */
 class OAuth2 extends Facade {

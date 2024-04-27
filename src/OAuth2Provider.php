@@ -8,6 +8,7 @@ use PL2010\OAuth2\Contracts\OAuth2;
 use League\OAuth2\Client\Provider\AbstractProvider;
 use League\OAuth2\Client\Token\AccessToken;
 
+use Closure;
 use InvalidArgumentException;
 
 /**
@@ -73,9 +74,12 @@ class OAuth2Provider implements OAuth2 {
 	/** {@inheritdoc} */
 	public function authorize(
 		string $type='',
-		string|array $scope=''
+		string|array $scope='',
+		?string $redirect=null,
+		?Closure $preserve=null
 	): string|array {
 		$type = $type ?: ($this->config['grant_type'] ?? 'code');
+		$redirect = $redirect ?: $this->redirectUri();
 		$providerCfg = $this->config['provider'] ?? [];
 		$provider = $this->getOAuth2Provider();
 
@@ -84,12 +88,19 @@ class OAuth2Provider implements OAuth2 {
 			$state = $this->makeOAuth2State($this->name, [
 				'response_type' => 'code',
 				'client_id' => $providerCfg['client_id'] ?? null,
-				'redirect_uri' => $this->redirectUri(),
+				'redirect_uri' => $redirect,
 			], $this->salt);
-			return $provider->getAuthorizationUrl([
+			$url = $provider->getAuthorizationUrl([
+				'redirect_uri' => $redirect,
 				'scope' => $scope,
 				'state' => $state,
 			]);
+			$preserve && $preserve($state, [
+				'pkce_code' => $provider->getPkceCode(),
+				'redirect_uri' => $redirect,
+				'salt' => $this->salt,
+			]);
+			return $url;
 		case 'client_credentials':
 			$options = $this->config['options']['token'] ?? [];
 			$options = $this->addScopeOption($scope, $options);
@@ -108,7 +119,7 @@ class OAuth2Provider implements OAuth2 {
 	}
 
 	/** {@inheritdoc} */
-	public function receive(string $url): array {
+	public function receive(string $url, ?array $preserved=null): array {
 		@[
 			'query' => $query,
 		] = parse_url($url);
@@ -121,7 +132,7 @@ class OAuth2Provider implements OAuth2 {
 		] = $params;
 
 		$providerCfg = $this->config['provider'] ?? [];
-		$provider = $this->getOAuth2Provider();
+		$provider = $this->getOAuth2Provider($preserved);
 
 		if (!is_string($state)) {
 			$this->logError('invalid call-back: missing/invalid state');
@@ -129,16 +140,18 @@ class OAuth2Provider implements OAuth2 {
 		}
 
 		if (is_string($code ?? null)) {
+			$redirect = $preserved['redirect_uri'] ?? $this->redirectUri();
 			if (!$this->verifyOAuth2State($this->name, $state, [
 				'response_type' => 'code',
 				'client_id' => $providerCfg['client_id'] ?? null,
-				'redirect_uri' => $this->redirectUri(),
-			], $this->salt)) {
+				'redirect_uri' => $redirect,
+			], $preserved['salt'] ?? $this->salt)) {
 				$this->logError('invalid call-back: state cannot be verified');
 				throw new InvalidArgumentException('invalid_request');
 			}
 			$accessToken = $provider->getAccessToken('authorization_code', [
 				'code' => $code,
+				'redirect_uri' => $redirect,
 			]);
 			return json_decode(json_encode($accessToken), true);
 		}
@@ -180,7 +193,17 @@ class OAuth2Provider implements OAuth2 {
 	/** OAuth2 provider. */
 	protected ?AbstractProvider $provider = null;
 
-	protected function getOAuth2Provider(): AbstractProvider {
+	protected function getOAuth2Provider(?array $preserved=null): AbstractProvider {
+		// New instance of provider if based on preserved state.
+		if ($preserved) {
+			$provider = $this->makeOAuth2Provider(
+				$this->config['provider'] ?? []
+			);
+			if ($pkce = $preserved['pkce_code'] ?? null)
+				$provider->setPkceCode($pkce);
+			return $provider;
+		}
+
 		if (!$this->provider) {
 			$this->provider = $this->makeOAuth2Provider(
 				$this->config['provider'] ?? []

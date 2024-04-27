@@ -3,6 +3,8 @@ namespace PL2010\OAuth2;
 
 use PL2010\OAuth2\Contracts\OAuth2;
 
+use Closure;
+
 /**
  * Manager of OAuth2 providers.
  * Providers are retreived by name using the {@link get()} method.
@@ -175,16 +177,18 @@ class OAuth2Manager implements OAuth2 {
 	 */
 	public function authorize(
 		string $type='',
-		string|array $scope=''
+		string|array $scope='',
+		?string $redirect=null,
+		?Closure $preserve=null
 	): string|array {
-		return $this->get()->authorize($type, $scope);
+		return $this->get()->authorize($type, $scope, $redirect, $preserve);
 	}
 
 	/**
 	 * Call {@link OAuth2::receive()} on default.
 	 */
-	public function receive(string $url): array {
-		return $this->get()->receive($url);
+	public function receive(string $url, ?array $preserved=null): array {
+		return $this->get()->receive($url, $preserved);
 	}
 
 	/**
